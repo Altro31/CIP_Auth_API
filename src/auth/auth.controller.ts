@@ -1,4 +1,4 @@
-import {Body, Controller, Post, UseGuards} from '@nestjs/common';
+import {Body, Controller, HttpCode, Post, UseGuards} from '@nestjs/common';
 import {AuthService} from "./auth.service";
 import {LocalAuthGuard} from "./guards/local_auth.guard";
 import {CurrentUser} from "./param_decorators/current_user.param_decorator";
@@ -17,24 +17,35 @@ export class AuthController {
 
     @ApiBody({type: LoginDto, description: 'Login with email and password'})
     @UseGuards(LocalAuthGuard)
+    @HttpCode(200)
     @Post('login')
     async login(@CurrentUser() user: UserWithoutPassword) {
-        return this.authService.login(user)
+        return {user: this.authService.login(user)}
     }
 
     @ApiBody({type: RegisterDto, description: 'Register with email, username and password'})
+    @HttpCode(200)
     @Post('register')
     async register(
         @Body('email', RequiredPipe) email: string,
         @Body('username', RequiredPipe) name: string,
         @Body('password', RequiredPipe) password: string
     ) {
-        return this.authService.register(email, name, password)
+        return {user: this.authService.register(email, name, password)}
+    }
+
+    @ApiBearerAuth()
+    @UseGuards(JWTAuthGuard)
+    @HttpCode(200)
+    @Post('verify')
+    async verify(@CurrentUser() user: UserWithoutPassword) {
+        return {pass: true, user}
     }
 
     @ApiBody({type: ChangePasswordDto, description: 'Change password'})
     @ApiBearerAuth()
     @UseGuards(JWTAuthGuard)
+    @HttpCode(200)
     @Post('change-password')
     async change_password(
         @CurrentUser() user: UserWithoutPassword,
